@@ -36,28 +36,29 @@ class ForexRSIAgent:
         self.alert_history = {}
         
     def get_rsi_value(self, pair):
-        """Alpha Vantage API se RSI fetch karo"""
-        try:
-            url = "https://www.alphavantage.co/query"
-            params = {
-                'function': 'RSI',
-                'symbol': pair,
-                'interval': '60min',
-                'time_period': 14,
-                'series_type': 'close',
-                'apikey': self.alpha_vantage_key
-            }
+    """Twelve Data API se RSI fetch karo (more reliable)"""
+    try:
+        url = "https://api.twelvedata.com/rsi"
+        params = {
+            'symbol': pair,
+            'interval': '1h',
+            'time_period': '14',
+            'apikey': 'YOUR_TWELVE_DATA_KEY'  # yahan apni key daalo
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        data = response.json()
+        
+        if 'values' in data and len(data['values']) > 0:
+            rsi = float(data['values'][0]['rsi'])
+            return rsi
+        else:
+            logger.warning(f"RSI data not found for {pair}: {data}")
+            return None
             
-            response = requests.get(url, params=params, timeout=10)
-            data = response.json()
-            
-            if 'Technical Analysis: RSI' in data:
-                latest = list(data['Technical Analysis: RSI'].values())[0]
-                rsi = float(latest['RSI'])
-                return rsi
-            else:
-                logger.warning(f"RSI data not found for {pair}")
-                return None
+    except Exception as e:
+        logger.error(f"Error fetching RSI for {pair}: {e}")
+        return None
                 
         except Exception as e:
             logger.error(f"Error fetching RSI for {pair}: {e}")
