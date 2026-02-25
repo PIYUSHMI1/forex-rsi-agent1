@@ -17,7 +17,7 @@ class ForexRSIAgent:
         # Major Forex Pairs
         self.fx_pairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD']
         
-        # RSI Settings (aap apne hisaab se change kar sakte ho)
+        # RSI Settings
         self.rsi_settings = {
             'EURUSD': {'oversold': 30, 'overbought': 70},
             'GBPUSD': {'oversold': 25, 'overbought': 75},
@@ -27,45 +27,57 @@ class ForexRSIAgent:
             'USDCAD': {'oversold': 30, 'overbought': 70}
         }
         
-        # API Keys (Render Dashboard se set karna)
+        # Environment Variables
         self.telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN')
         self.chat_id = os.environ.get('TELEGRAM_CHAT_ID')
-        self.alpha_vantage_key = os.environ.get('ALPHA_VANTAGE_KEY', 'demo')
+        self.twelve_data_key = os.environ.get('TWELVE_DATA_KEY')
         
-        # Alert history (duplicate alerts rokne ke liye)
+        # Alert history (duplicate alerts prevent)
         self.alert_history = {}
         
     def get_rsi_value(self, pair):
-    """Twelve Data API se RSI fetch karo (more reliable)"""
-    try:
-        url = "https://api.twelvedata.com/rsi"
-        params = {
-            'symbol': pair,
-            'interval': '1h',
-            'time_period': '14',
-            'apikey': 'YOUR_TWELVE_DATA_KEY'  # yahan apni key daalo
-        }
-        
-        response = requests.get(url, params=params, timeout=10)
-        data = response.json()
-        
-        if 'values' in data and len(data['values']) > 0:
-            rsi = float(data['values'][0]['rsi'])
-            return rsi
-        else:
-            logger.warning(f"RSI data not found for {pair}: {data}")
+        """Fetch RSI from Twelve Data API"""
+        if not self.twelve_data_key:
+            logger.error("TWELVE_DATA_KEY not set in environment variables")
             return None
+
+        try:
+            url = "https://api.twelvedata.com/rsi"
+            params = {
+                'symbol': pair,
+                'interval': '1h',
+                'time_period': 14,
+                'apikey': self.twelve_data_key,
+                'outputsize': 1
+            }
             
-    except Exception as e:
-        logger.error(f"Error fetching RSI for {pair}: {e}")
-        return None
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Handle API error response
+            if data.get("status") == "error":
+                logger.error(f"TwelveData API Error for {pair}: {data.get('message')}")
+                return None
+            
+            if 'values' in data and len(data['values']) > 0:
+                rsi = float(data['values'][0]['rsi'])
+                return rsi
+            else:
+                logger.warning(f"RSI data not found for {pair}: {data}")
+                return None
                 
+        except requests.exceptions.Timeout:
+            logger.error(f"Timeout while fetching RSI for {pair}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"HTTP error fetching RSI for {pair}: {e}")
         except Exception as e:
-            logger.error(f"Error fetching RSI for {pair}: {e}")
-            return None
+            logger.error(f"Unexpected error fetching RSI for {pair}: {e}")
+        
+        return None
     
     def check_pair(self, pair):
-        """Ek pair check karo aur alert bhejo agar condition meet ho"""
+        """Check pair and generate alert if condition met"""
         rsi = self.get_rsi_value(pair)
         
         if rsi is None:
@@ -78,7 +90,6 @@ class ForexRSIAgent:
             alert_key = f"{pair}_OVERSOLD"
             current_time = time.time()
             
-            # Duplicate check (1 hour cooldown)
             if alert_key not in self.alert_history or \
                (current_time - self.alert_history[alert_key]) > 3600:
                 
@@ -113,13 +124,12 @@ class ForexRSIAgent:
         return None
     
     def send_telegram_alert(self, alert):
-        """Telegram par alert bhejo"""
+        """Send alert to Telegram"""
         if not self.telegram_token or not self.chat_id:
             logger.warning("Telegram credentials not set")
             return
         
         try:
-            # Alert message banayo
             if alert['signal'] == 'OVERSOLD':
                 emoji = "🔴"
                 message = f"""
@@ -147,7 +157,6 @@ class ForexRSIAgent:
 💡 <i>Overbought - Potential Sell Signal</i>
                 """
             
-            # Send to Telegram
             url = f"https://api.telegram.org/bot{self.telegram_token}/sendMessage"
             payload = {
                 'chat_id': self.chat_id,
@@ -156,6 +165,7 @@ class ForexRSIAgent:
             }
             
             response = requests.post(url, json=payload, timeout=10)
+            
             if response.status_code == 200:
                 logger.info(f"Alert sent for {alert['pair']}")
             else:
@@ -165,7 +175,7 @@ class ForexRSIAgent:
             logger.error(f"Error sending Telegram alert: {e}")
     
     def monitor_all_pairs(self):
-        """Sab pairs ko monitor karo"""
+        """Monitor all pairs"""
         alerts_found = []
         
         for pair in self.fx_pairs:
@@ -176,16 +186,16 @@ class ForexRSIAgent:
                 alerts_found.append(alert)
                 self.send_telegram_alert(alert)
             
-            # API rate limit ke liye delay
-            time.sleep(12)  # Alpha Vantage allows 5 calls per minute
+            time.sleep(2)  # Small delay to avoid hitting API limits
         
         return alerts_found
+
 
 # Initialize agent
 agent = ForexRSIAgent()
 
 def background_monitor():
-    """Background mein monitoring loop"""
+    """Background monitoring loop"""
     logger.info("🚀 Forex RSI Agent Started!")
     
     while True:
@@ -198,13 +208,13 @@ def background_monitor():
             else:
                 logger.info("No alerts found")
             
-            # 5 minutes wait
             logger.info("Waiting 5 minutes for next check...")
-            time.sleep(300)  # 5 minutes
+            time.sleep(300)
             
         except Exception as e:
             logger.error(f"Error in monitoring loop: {e}")
-            time.sleep(60)  # Error ke baad 1 minute wait
+            time.sleep(60)
+
 
 # Routes
 @app.route('/')
@@ -226,7 +236,6 @@ def health():
 
 @app.route('/check-now')
 def check_now():
-    """Manual trigger for testing"""
     alerts = agent.monitor_all_pairs()
     return jsonify({
         'alerts': alerts,
@@ -236,18 +245,19 @@ def check_now():
 
 @app.route('/status')
 def status():
-    """Agent status"""
     return jsonify({
         'pairs_monitored': agent.fx_pairs,
         'alert_history_count': len(agent.alert_history),
         'telegram_configured': bool(agent.telegram_token and agent.chat_id),
-        'api_key_configured': agent.alpha_vantage_key != 'demo'
+        'api_key_configured': bool(agent.twelve_data_key)
     })
+
 
 # Start background thread
 thread = threading.Thread(target=background_monitor)
 thread.daemon = True
 thread.start()
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
