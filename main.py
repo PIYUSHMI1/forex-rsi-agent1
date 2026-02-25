@@ -15,16 +15,16 @@ app = Flask(__name__)
 class ForexRSIAgent:
     def __init__(self):
         # Major Forex Pairs
-        self.fx_pairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD']
+        self.fx_pairs = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD', 'USD/CAD']
         
         # RSI Settings
         self.rsi_settings = {
-            'EURUSD': {'oversold': 30, 'overbought': 70},
-            'GBPUSD': {'oversold': 25, 'overbought': 75},
-            'USDJPY': {'oversold': 30, 'overbought': 70},
-            'USDCHF': {'oversold': 30, 'overbought': 70},
-            'AUDUSD': {'oversold': 28, 'overbought': 72},
-            'USDCAD': {'oversold': 30, 'overbought': 70}
+            'EUR/USD': {'oversold': 30, 'overbought': 70},
+            'GBP/USD': {'oversold': 25, 'overbought': 75},
+            'USD/JPY': {'oversold': 30, 'overbought': 70},
+            'USD/CHF': {'oversold': 30, 'overbought': 70},
+            'AUD/USD': {'oversold': 28, 'overbought': 72},
+            'USD/CAD': {'oversold': 30, 'overbought': 70}
         }
         
         # Environment Variables
