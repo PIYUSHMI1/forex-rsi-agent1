@@ -19,16 +19,16 @@ app = Flask(__name__)
 class ForexRSIAgent:
     def __init__(self):
         # Major Forex Pairs - EXACT format like Jupiter code
-        self.fx_pairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD']
+        self.fx_pairs = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/SD', 'USD/CAD']
         
         # RSI Settings - exactly like Jupiter code
         self.rsi_settings = {
-            'EURUSD': {'oversold': 30, 'overbought': 70},
-            'GBPUSD': {'oversold': 30, 'overbought': 70},
-            'USDJPY': {'oversold': 30, 'overbought': 70},
-            'USDCHF': {'oversold': 30, 'overbought': 70},
-            'AUDUSD': {'oversold': 30, 'overbought': 70},
-            'USDCAD': {'oversold': 30, 'overbought': 70}
+            'EUR/USD': {'oversold': 30, 'overbought': 70},
+            'GBP/USD': {'oversold': 30, 'overbought': 70},
+            'USD/JPY': {'oversold': 30, 'overbought': 70},
+            'USD/CHF': {'oversold': 30, 'overbought': 70},
+            'AUD/USD': {'oversold': 30, 'overbought': 70},
+            'USD/CAD': {'oversold': 30, 'overbought': 70}
         }
         
         # API Keys from environment
@@ -51,7 +51,7 @@ class ForexRSIAgent:
         url = "https://api.twelvedata.com/rsi"
         
         params = {
-            "symbol": pair,  # Direct EURUSD, no formatting needed!
+            "symbol": pair,  # Direct EUR/USD, no formatting needed!
             "interval": "5min",  # Jupiter code uses 5min
             "time_period": 14,
             "apikey": self.twelve_data_key,
