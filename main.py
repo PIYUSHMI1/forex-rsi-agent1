@@ -19,7 +19,7 @@ app = Flask(__name__)
 class ForexRSIAgent:
     def __init__(self):
         # Major Forex Pairs - EXACT format like Jupiter code
-        self.fx_pairs = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/SD', 'USD/CAD']
+        self.fx_pairs = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD', 'USD/CAD']
         
         # RSI Settings - exactly like Jupiter code
         self.rsi_settings = {
